@@ -38,7 +38,8 @@ prob2=pred2['prob'][:,:,0,0]
 prob2=np.mean(prob2, axis=0)
 print 'predicted2 classes:', np.where(prob2>0.1)
 
-imtrans.oversample()
+fea=net.forward(data=caffe_input, blobs=['conv1_2', 'pool3'], end='pool5') #calculate feature response
+print fea.keys()
 
 
 
