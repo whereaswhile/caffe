@@ -159,6 +159,36 @@ def _Net_forward_all(self, blobs=None, **kwargs):
     return all_outs
 
 
+def _Net_forward_all2(self, blobs=None, start=None, end=None, **kwargs):
+    """
+    Run net forward in batches.
+
+    Take
+    blobs: list of blobs to extract as in forward()
+    kwargs: Keys are input blob names and values are blob ndarrays.
+            Refer to forward().
+    start: optional name of layer at which to begin the forward pass
+    end: optional name of layer at which to finish the forward pass (inclusive)
+
+    Give
+    all_outs: {blob name: list of blobs} dict.
+    """
+    # Collect outputs from batches
+    all_outs = {out: [] for out in set(self.outputs + (blobs or []))}
+    for batch in self._batch(kwargs):
+        outs = self.forward(blobs=blobs, start=start, end=end, **batch)
+        for out, out_blob in outs.iteritems():
+            all_outs[out].extend(out_blob.copy())
+    # Package in ndarray.
+    for out in all_outs:
+        all_outs[out] = np.asarray(all_outs[out])
+    # Discard padding.
+    pad = len(all_outs.itervalues().next()) - len(kwargs.itervalues().next())
+    if pad:
+        for out in all_outs:
+            all_outs[out] = all_outs[out][:-pad]
+    return all_outs
+
 def _Net_forward_backward_all(self, blobs=None, diffs=None, **kwargs):
     """
     Run net forward + backward in batches.
@@ -383,6 +413,7 @@ Net.params = _Net_params
 Net.forward = _Net_forward
 Net.backward = _Net_backward
 Net.forward_all = _Net_forward_all
+Net.forward_all2 = _Net_forward_all2
 Net.forward_backward_all = _Net_forward_backward_all
 Net.set_mean = _Net_set_mean
 Net.set_input_scale = _Net_set_input_scale
